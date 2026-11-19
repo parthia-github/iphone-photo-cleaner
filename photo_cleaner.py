@@ -7,7 +7,6 @@ from tkinter import filedialog, messagebox, scrolledtext
 from PIL import Image
 import pillow_heif
 
-# 注册 HEIF/HEIC 解码器
 pillow_heif.register_heif_opener()
 
 
@@ -19,7 +18,6 @@ class PhotoOrganizerApp:
     self.root.geometry("560x510")
     self.root.resizable(False, False)
 
-    # 文件夹选择
     frame_top = tk.Frame(root, pady=12, padx=20)
     frame_top.pack(fill="x")
     tk.Label(
@@ -37,7 +35,6 @@ class PhotoOrganizerApp:
         frame_path, text="选择文件夹", command=self.select_folder, width=10
     ).pack(side="right")
 
-    # 功能选项
     frame_opts = tk.LabelFrame(
         root, text="整理功能选项", padx=15, pady=10, font=("微软雅黑", 9, "bold")
     )
@@ -79,7 +76,6 @@ class PhotoOrganizerApp:
         variable=self.var_sort,
     ).pack(anchor="w", pady=(4, 0))
 
-    # 开始按钮
     self.btn_start = tk.Button(
         root,
         text="开始一键全能整理",
@@ -92,7 +88,6 @@ class PhotoOrganizerApp:
     )
     self.btn_start.pack(pady=12)
 
-    # 日志窗口
     tk.Label(root, text="处理日志：", font=("微软雅黑", 9)).pack(
         anchor="w", padx=20
     )
@@ -139,7 +134,6 @@ class PhotoOrganizerApp:
     media_exts = photo_exts | {".mov", ".mp4", ".gif"}
 
     try:
-      # 1. 清理垃圾文件
       if self.var_clean.get():
         self.log(">>> [1/4] 扫描并清理 .AAE 与 ._ 垃圾小文件...")
         for root_dir, _, files in os.walk(folder):
@@ -152,16 +146,16 @@ class PhotoOrganizerApp:
                 self.log(f"删除失败 {file}: {e}")
         self.log(f"清理完成：删除 {del_junk} 个垃圾文件。")
 
-      # 2. 识别并分离 Live Photo 实况短视频
       if self.var_live.get():
         self.log(">>> [2/4] 识别实况照片 (Live Photo) 短视频...")
         files = os.listdir(folder)
-        photo_bases = {
-            os.path.splitext(f)[0].lower()
-            for f in files
-            if os.path.isfile(os.path.join(folder, f))
-            and os.path.splitext(f)[1].lower() in photo_exts
-        }
+        photo_bases = set()
+        for f in files:
+          if os.path.isfile(os.path.join(folder, f)):
+            b, e = os.path.splitext(f)
+            if e.lower() in photo_exts:
+              photo_bases.add(b.lower())
+
         live_dir = os.path.join(folder, "LivePhoto_实况短视频")
         for f in files:
           file_path = os.path.join(folder, f)
@@ -172,20 +166,18 @@ class PhotoOrganizerApp:
               live_count += 1
         self.log(f"分离完成：归类 {live_count} 个实况短视频。")
 
-      # 3. HEIC 自动转 JPG
       if self.var_heic.get():
         self.log(">>> [3/4] 转换 .HEIC 照片为高画质 .JPG...")
         for f in os.listdir(folder):
           file_path = os.path.join(folder, f)
           if os.path.isfile(file_path) and f.lower().endswith(".heic"):
-            base = os.path.splitext(f)[0]
+            base, _ = os.path.splitext(f)
             jpg_path = os.path.join(folder, f"{base}.jpg")
             try:
               mtime = os.path.getmtime(file_path)
               with Image.open(file_path) as img:
                 rgb_img = img.convert("RGB")
                 rgb_img.save(jpg_path, "JPEG", quality=95)
-              # 保留原照片的拍摄修改时间戳，方便后续按日期归类
               os.utime(jpg_path, (mtime, mtime))
               heic_count += 1
               if self.var_del_heic.get():
@@ -194,14 +186,13 @@ class PhotoOrganizerApp:
               self.log(f"转换失败 {f}: {e}")
         self.log(f"转换完成：成功转换 {heic_count} 张 HEIC 照片。")
 
-      # 4. 按年月归类剩余媒体文件
       if self.var_sort.get():
         self.log(">>> [4/4] 按年月归类剩余照片与视频...")
         for f in os.listdir(folder):
           file_path = os.path.join(folder, f)
           if os.path.isfile(file_path):
-            ext = os.path.splitext(f)[1].lower()
-            if ext in media_exts:
+            _, ext = os.path.splitext(f)
+            if ext.lower() in media_exts:
               mtime = os.path.getmtime(file_path)
               date_folder = datetime.fromtimestamp(mtime).strftime("%Y-%m")
               target_dir = os.path.join(folder, date_folder)
