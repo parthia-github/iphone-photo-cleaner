@@ -17,14 +17,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install Dependencies
+        run: pip install pyinstaller pillow pillow-heif
 
       - name: Build EXE
-        run: pyinstaller -F -w -n "iPhone照片整理助手" photo_cleaner.py
+        run: pyinstaller -F -w -n "iPhone照片全能整理助手v2" photo_cleaner.py
 
       - name: Upload EXE Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: iPhone照片整理助手_Win版
-          path: dist/iPhone照片整理助手.exe
+          name: iPhone照片全能整理助手v2_Win版
+          path: dist/iPhone照片全能整理助手v2.exe
